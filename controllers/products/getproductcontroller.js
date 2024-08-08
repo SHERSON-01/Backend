@@ -2,34 +2,57 @@ const mongoose = require("mongoose");
 const ProductCollection = require("../../models/ProductSchema");
 const getproductcontroller = async (req, res) => {
   try {
-    const {category, sub_category, name } = req.params;
+    const { id, category, sub_category, name } = req.params;
     let products;
-    if(category){
-      const searchcategory = category.toLowerCase()();
+    if (category) {
+      const searchcategory = category.toLowerCase();
       products = await ProductCollection.find({
-        category: {$regex: new RegExp(searchcategory, "i")},
+        category: { $regex: new RegExp(searchcategory, "i") },
       });
     }
 
-    else if(name){
-      const searchname = name.toLowerCase()();
+    else if (id) {
       products = await ProductCollection.find({
-        category: {$regex: new RegExp(searchname, "i")},
+        _id: id,
+      });
+    }
+    else if (name) {
+      const searchname = name.toLowerCase();
+      products = await ProductCollection.find({
+        category: { $regex: new RegExp(searchname, "i") },
       });
     }
 
-    else if(sub_category){
-      const searchsubcategory = subcategory.toLowerCase()();
+    else if (sub_category) {
+      const searchsubcategory = subcategory.toLowerCase();
       products = await ProductCollection.find({
-        sub_category: {$regex: new RegExp(searchsubcategory, "i")},
+        sub_category: { $regex: new RegExp(searchsubcategory, "i") },
       });
     }
-    else{
-    products = await ProductCollection.find();
-    console.log(`Product fetched successfully`);
+
+    else if (req.path.includes("/random")) {
+      products = await ProductCollection.aggregate([
+        {
+        $sample: {
+          size: 9,
+        },
+        },
+      ])}
+    else if (req.path.includes("/top-rated")) {
+      products = await ProductCollection.find().sort({ rating: -1}).limit(9);
     }
-    if(!products || products.length == 0)
-      return res.status(404).send({message: "Product not found"});
+    else if (req.path.includes("/lowtohigh")) {
+      products = await ProductCollection.find().sort({new_price: 1}).limit(9);
+    }
+    else if (req.path.includes("/hightolow")) {
+      products = await ProductCollection.find().sort({new_price: -1}).limit(9);
+    }
+    else {
+      products = await ProductCollection.find();
+      console.log(`Product fetched successfully`);
+    }
+    if (!products || products.length == 0)
+      return res.status(404).send({ message: "Product not found" });
     res.status(200).send(products);
 
   } catch (error) {
